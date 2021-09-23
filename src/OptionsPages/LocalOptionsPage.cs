@@ -14,7 +14,7 @@ namespace VSRemoteDebugger.OptionsPages
         [DisplayName("Use Command Line Arguments")]
         [Description("Uses command line arguments picked up from (Visual Studio) Project Settings -> Debugging -> Command Line Arguments." +
             "Does not work properly if using more than one debugging profiles, please set to false if that is the case")]
-        public bool UseCommandLineArgs { get; set; } = false;
+        public bool UseCommandLineArgs { get; set; } = true;
 
         [Category("Local Machine Settings")]
         [DisplayName("No Debug (just build and deploy to remote)")]

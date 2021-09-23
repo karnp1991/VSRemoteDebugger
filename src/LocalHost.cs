@@ -72,6 +72,7 @@ namespace VSRemoteDebugger
             json.configurations.Add(config);
 
             string tempJsonPath = Path.Combine(Path.GetTempPath(), DEBUG_ADAPTER_HOST_FILENAME);
+            File.Delete(tempJsonPath);
             File.WriteAllText(tempJsonPath, Convert.ToString(json));
 
             return tempJsonPath;

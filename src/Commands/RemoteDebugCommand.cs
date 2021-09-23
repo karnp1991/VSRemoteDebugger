@@ -214,37 +214,40 @@ namespace VSRemoteDebugger
 		/// </summary>
 		private void MkDir()
 		{
-			Bash($"sudo mkdir -p {Settings.DebugFolderPath}");
-			Bash($"sudo mkdir -p {Settings.ReleaseFolderPath}");
-			Bash($"sudo chown -R {Settings.UserName}:{Settings.GroupName} {Settings.AppFolderPath}");
+			Bash($"rm -rf {Settings.AppFolderPath}");
+			Bash($"mkdir -p {Settings.DebugFolderPath}");
+			Bash($"mkdir -p {Settings.ReleaseFolderPath}");
+			Bash($"chown -R {Settings.UserName}:{Settings.GroupName} {Settings.AppFolderPath}");
 		}
 
 		/// <summary>
 		/// clean everything in the debug directory
 		/// </summary>
-		private void Clean() => Bash($"sudo rm -rf {Settings.DebugFolderPath}/*");
+		private void Clean() => Bash($"rm -rf {Settings.DebugFolderPath}/*");
 
 		/// <summary>
 		/// Instals VS Debugger if it doesn't exist already
 		/// </summary>
 		private void TryInstallVsDbg()
 		{
-			string arch = Bash("uname -m").Trim('\n');
-
-			switch (arch)
-			{
-				case "arm7l":
-					Bash("[ -d ~/.vsdbg ] || curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -r linux-arm -v latest -l ~/.vsdbg");
-					break;
-
-				case "aarch64":
-					Bash("[ -d ~/.vsdbg ] || curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -r linux-arm64 -v latest -l ~/.vsdbg");
-					break;
-
-				default:
-					break;
-			}
+            string temp = Bash("[ -d ~/vsdbg ] || curl -sSL https://aka.ms/getvsdbgsh | /bin/sh /dev/stdin -v latest -l ~/vsdbg");
+            Output(temp);
 		}
+
+        public static void Output(string msg)
+        {
+            // Get the output window
+            var outputWindow = Package.GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
+ 
+            // Ensure that the desired pane is visible
+            var paneGuid = Microsoft.VisualStudio.VSConstants.OutputWindowPaneGuid.GeneralPane_guid;
+            IVsOutputWindowPane pane;
+            outputWindow.CreatePane(paneGuid, "Debug", 1, 0);
+            outputWindow.GetPane(paneGuid, out pane);
+ 
+            // Output the message
+            pane.OutputString(msg);
+        }
 
 		private void Build()
 		{
@@ -286,8 +289,8 @@ namespace VSRemoteDebugger
 				{
 					process.StartInfo = new ProcessStartInfo
 					{
-						FileName = "c:\\windows\\sysnative\\openssh\\scp.exe",
-						Arguments = $@"-pr {_localhost.OutputDirFullName}\* {Settings.UserName}@{Settings.IP}:{Settings.DebugFolderPath}",
+						FileName = @"C:\Windows\Sysnative\OpenSSH\scp.exe",
+						Arguments = $@"-pr {_localhost.OutputDirFullName}* {Settings.UserName}@{Settings.IP}:{Settings.DebugFolderPath.Replace("//", "/")}",
 						RedirectStandardOutput = true,
 						UseShellExecute = false,
 						CreateNoWindow = true,
@@ -297,7 +300,7 @@ namespace VSRemoteDebugger
 					return await process.WaitForExitAsync().ConfigureAwait(true);
 				}
 			}
-			catch(Exception)
+			catch(Exception ex)
 			{
 				return -1;
 			}
@@ -311,8 +314,6 @@ namespace VSRemoteDebugger
 			var dte = (DTE2)Package.GetGlobalService(typeof(SDTE));
 			string jsonPath = _localhost.GenJson();
 			dte.ExecuteCommand("DebugAdapterHost.Launch", $"/LaunchJson:\"{jsonPath}\"");
-
-			File.Delete(jsonPath);
 		}
 
 		private void Cleanup()
